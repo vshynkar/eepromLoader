@@ -1,51 +1,14 @@
 #include <Wire.h>
+#include <avr/pgmspace.h>
+#include "I2C_eeprom.h"
+#include "ConfigBlock.h"
+#include "menuUaBlock.h"
 
 #define MEM_CHIP_ADDR 0x50
 
+bool wasRun = false;
 
-void i2c_eeprom_write_byte( int deviceaddress, unsigned int eeaddress, byte data ) {
-  int rdata = data;
-  Wire.beginTransmission(deviceaddress);
-  Wire.write((int)(eeaddress >> 8)); // MSB
-  Wire.write((int)(eeaddress & 0xFF)); // LSB
-  Wire.write(rdata);
-  Wire.endTransmission();
-}
-
-// WARNING: address is a page address, 6-bit end will wrap around
-// also, data can be maximum of about 30 bytes, because the Wire library has a buffer of 32 bytes
-void i2c_eeprom_write_page( int deviceaddress, unsigned int eeaddresspage, byte* data, byte length ) {
-  Wire.beginTransmission(deviceaddress);
-  Wire.write((int)(eeaddresspage >> 8)); // MSB
-  Wire.write((int)(eeaddresspage & 0xFF)); // LSB
-  byte c;
-  for ( c = 0; c < length; c++)
-    Wire.write(data[c]);
-  Wire.endTransmission();
-} 
-
-byte i2c_eeprom_read_byte( int deviceaddress, unsigned int eeaddress ) {
-  byte rdata = 0xFF;
-  Wire.beginTransmission(deviceaddress);
-  Wire.write((int)(eeaddress >> 8)); // MSB
-  Wire.write((int)(eeaddress & 0xFF)); // LSB
-  Wire.endTransmission();
-  Wire.requestFrom(deviceaddress, 1);
-  if (Wire.available()) rdata = Wire.read();
-  return rdata;
-}
-
-// maybe let's not read more than 30 or 32 bytes at a time!
-void i2c_eeprom_read_buffer( int deviceaddress, unsigned int eeaddress, byte *buffer, int length ) {
-  Wire.beginTransmission(deviceaddress);
-  Wire.write((int)(eeaddress >> 8)); // MSB
-  Wire.write((int)(eeaddress & 0xFF)); // LSB
-  Wire.endTransmission();
-  Wire.requestFrom(deviceaddress, length);
-  int c = 0;
-  for ( c = 0; c < length; c++ )
-    if (Wire.available()) buffer[c] = Wire.read();
-}
+I2C_eeprom ee(0x50);
 
 void setup() {
   Wire.begin();
@@ -54,4 +17,73 @@ void setup() {
 }
 
 void loop() {
+  if (!wasRun) {
+    unsigned int offset = MEM_DATA_ADDR;
+    writeMenuUa(offset);
+    readMenuUa(offset);
+    //    readProgmem();
+    wasRun = true;
+  }
 }
+
+void writeMenuUa(unsigned int startAddr) {
+  Serial.println("Start read data");
+  unsigned int testInt = readInt(MENU_UA_BLOCK_ADDR);
+  if (startAddr != testInt) {
+    writeInt(MENU_UA_BLOCK_ADDR, startAddr);
+  }
+
+  int menuUaBlockSize = MENU_UA_LINE_LENGTH * MENU_UA_ROWS;
+  char data = 0;
+  char testdata = 0;
+  for (int i = 0; i < MENU_UA_ROWS; i++) {
+    for (int j = 0; j < MENU_UA_LINE_LENGTH; j++) {
+      data = (char) pgm_read_byte(menuUaBlock + i * MENU_UA_LINE_LENGTH + j);
+      testdata = (char) ee.readByte(startAddr + i * MENU_UA_LINE_LENGTH + j);
+      if (testdata != data) {
+        ee.writeByte(startAddr + i * MENU_UA_LINE_LENGTH + j, data);
+      }
+    }
+  }
+
+  Serial.println("Finished read data " + String(menuUaBlockSize) + " bytes");
+}
+
+void readMenuUa(int startAddr) {
+  for (int i = 0; i < MENU_UA_ROWS; i++) {
+    for (int j = 0; j < MENU_UA_LINE_LENGTH; j++) {
+      Serial.print(ee.readByte(startAddr + i * MENU_UA_LINE_LENGTH + j), HEX);
+      Serial.print(" ");
+    }
+    Serial.println();
+  }
+
+}
+
+void readProgmem() {
+  byte data = 0;
+  for (int i = 0; i < MENU_UA_ROWS; i++) {
+    for (int j = 0; j < MENU_UA_LINE_LENGTH; j++) {
+      data = pgm_read_byte(menuUaBlock + i * MENU_UA_LINE_LENGTH + j);
+      Serial.print(data, HEX);
+      Serial.print(" ");
+    }
+    Serial.println();
+  }
+}
+
+unsigned int readInt(unsigned int address) {
+  byte lowByte = ee.readByte(address);
+  byte highByte = ee.readByte(address + 1);
+
+  return ((lowByte << 0) & 0xFF) + ((highByte << 8) & 0xFF00);
+}
+
+void writeInt(unsigned int address, unsigned int value) {
+  byte lowByte = ((value >> 0) & 0xFF);
+  byte highByte = ((value >> 8) & 0xFF);
+
+  ee.writeByte(address, lowByte);
+  ee.writeByte(address + 1, highByte);
+}
+
