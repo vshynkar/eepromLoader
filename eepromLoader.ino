@@ -26,6 +26,37 @@ void loop() {
   }
 }
 
+// --------------------------------------------------------------
+
+void readProgmem() {
+  byte data = 0;
+  for (int i = 0; i < MENU_UA_ROWS; i++) {
+    for (int j = 0; j < MENU_UA_LINE_LENGTH; j++) {
+      data = pgm_read_byte(menuUaBlock + i * MENU_UA_LINE_LENGTH + j);
+      Serial.print(data, HEX);
+      Serial.print(" ");
+    }
+    Serial.println();
+  }
+}
+
+unsigned int readInt(unsigned int address) {
+  byte lowByte = ee.readByte(address);
+  byte highByte = ee.readByte(address + 1);
+
+  return ((lowByte << 0) & 0xFF) + ((highByte << 8) & 0xFF00);
+}
+
+void writeInt(unsigned int address, unsigned int value) {
+  byte lowByte = ((value >> 0) & 0xFF);
+  byte highByte = ((value >> 8) & 0xFF);
+
+  ee.writeByte(address, lowByte);
+  ee.writeByte(address + 1, highByte);
+}
+
+// -----------------------------------------------------------------
+
 void writeMenuUa(unsigned int startAddr) {
   Serial.println("Start read data");
   unsigned int testInt = readInt(MENU_UA_BLOCK_ADDR);
@@ -58,32 +89,5 @@ void readMenuUa(int startAddr) {
     Serial.println();
   }
 
-}
-
-void readProgmem() {
-  byte data = 0;
-  for (int i = 0; i < MENU_UA_ROWS; i++) {
-    for (int j = 0; j < MENU_UA_LINE_LENGTH; j++) {
-      data = pgm_read_byte(menuUaBlock + i * MENU_UA_LINE_LENGTH + j);
-      Serial.print(data, HEX);
-      Serial.print(" ");
-    }
-    Serial.println();
-  }
-}
-
-unsigned int readInt(unsigned int address) {
-  byte lowByte = ee.readByte(address);
-  byte highByte = ee.readByte(address + 1);
-
-  return ((lowByte << 0) & 0xFF) + ((highByte << 8) & 0xFF00);
-}
-
-void writeInt(unsigned int address, unsigned int value) {
-  byte lowByte = ((value >> 0) & 0xFF);
-  byte highByte = ((value >> 8) & 0xFF);
-
-  ee.writeByte(address, lowByte);
-  ee.writeByte(address + 1, highByte);
 }
 
