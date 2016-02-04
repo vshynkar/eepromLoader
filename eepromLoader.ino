@@ -8,7 +8,7 @@
 #define MEM_CHIP_ADDR 0x50
 
 #define MENU_LINE_LENGTH          14
-#define MENU_ROWS                 15
+#define MENU_ROWS                 20
 
 bool wasRun = false;
 
