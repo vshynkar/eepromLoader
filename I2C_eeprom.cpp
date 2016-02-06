@@ -144,6 +144,7 @@ int I2C_eeprom::_WriteBlock(uint16_t address, uint8_t* buffer, uint8_t length)
 {
     waitEEReady();
 
+
     Wire.beginTransmission(_deviceAddress);
 #if defined(ARDUINO) && ARDUINO >= 100
     Wire.write((int)(address >> 8));
@@ -190,6 +191,21 @@ uint8_t I2C_eeprom::_ReadBlock(uint16_t address, uint8_t* buffer, uint8_t length
 #endif
     }
     return cnt;
+}
+
+uint16_t I2C_eeprom::readInt(uint16_t address) {
+  byte lowByte = readByte(address);
+  byte highByte = readByte(address + 1);
+
+  return ((lowByte << 0) & 0xFF) + ((highByte << 8) & 0xFF00);
+}
+
+void I2C_eeprom::writeInt(uint16_t address, uint16_t value) {
+  byte lowByte = ((value >> 0) & 0xFF);
+  byte highByte = ((value >> 8) & 0xFF);
+
+  writeByte(address, lowByte);
+  writeByte(address + 1, highByte);
 }
 
 void I2C_eeprom::waitEEReady()
