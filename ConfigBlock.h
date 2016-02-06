@@ -3,6 +3,7 @@
 
 #define MEM_DATA_ADDR           0x14
 
+// status block
 #define MENU_EN_BLOCK_ADDR      0x00
 #define MENU_UA_BLOCK_ADDR      0x02
 #define CONFIG_BLOCK_ADDR       0x04
@@ -14,6 +15,7 @@
 #define RESERVED_6_ADDR         0x10
 #define RESERVED_7_ADDR         0x12
 
-#define UINT unsigned int
+// preferences block
+#define LANGUAGE_ADDR_OFFSET    0x00
 
 #endif

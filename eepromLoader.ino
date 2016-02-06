@@ -9,6 +9,7 @@
 
 #define MENU_LINE_LENGTH          14
 #define MENU_ROWS                 20
+#define PREERENCES_SIZE           2
 
 bool wasRun = false;
 
@@ -24,12 +25,18 @@ void loop() {
   if (!wasRun) {
     uint16_t offset = MEM_DATA_ADDR;
     writeMenuUa(offset);
-    readMenu(offset);
+//    readMenu(offset);
     //    readProgmem();
 
     offset = offset + (MENU_LINE_LENGTH * MENU_ROWS);
     writeMenuEn(offset);
-    readMenu(offset);
+//    readMenu(offset);
+
+    offset = offset + (MENU_LINE_LENGTH * MENU_ROWS);
+    writePreferences(offset);
+
+    offset = offset + PREERENCES_SIZE;
+
     wasRun = true;
   }
 }
@@ -64,6 +71,20 @@ void writeInt(uint16_t address, uint16_t value) {
 }
 
 // -----------------------------------------------------------------
+
+void writePreferences(uint16_t configStartAddr) {
+  uint16_t testInt = readInt(CONFIG_BLOCK_ADDR);
+  if (configStartAddr != testInt) {
+    writeInt(CONFIG_BLOCK_ADDR, configStartAddr);
+  }
+
+  uint16_t currentLangExistedAddr = readInt(configStartAddr + LANGUAGE_ADDR_OFFSET);
+//  uint16_t currentLangNewAddr = readInt(MENU_EN_BLOCK_ADDR);
+  uint16_t currentLangNewAddr = readInt(MENU_UA_BLOCK_ADDR);
+  if (currentLangNewAddr != currentLangExistedAddr) {
+    writeInt(configStartAddr + LANGUAGE_ADDR_OFFSET, currentLangNewAddr);
+  }
+}
 
 void writeMenuUa(uint16_t startAddr) {
   Serial.println("Start UA read data");
